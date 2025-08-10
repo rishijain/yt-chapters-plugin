@@ -5,12 +5,21 @@
   border: none !important;
   color: white !important;
   font-size: 16px !important;
-  padding: 8px !important;
-  margin: 0 4px !important;
+  width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  margin: 0 2px !important;
   cursor: pointer !important;
   border-radius: 2px !important;
-  opacity: 0.8 !important;
-  transition: opacity 0.2s ease !important;
+  opacity: 0.9 !important;
+  transition: all 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  min-width: 40px !important;
+  transform: translateY(0px) !important;
+  vertical-align: top !important;
 }
 
 .yt-chapters-generator-btn:hover {

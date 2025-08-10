@@ -76,6 +76,13 @@ class YouTubeChaptersGenerator {
       console.log('YouTubeChaptersGenerator: Alternative controls2:', altControls2);
       return;
     }
+    
+    // Debug: log existing buttons for positioning reference
+    const existingButtons = controls.querySelectorAll('button');
+    console.log('YouTubeChaptersGenerator: Existing buttons in controls:', existingButtons);
+    existingButtons.forEach((btn, index) => {
+      console.log(`Button ${index}:`, btn.className, btn.title);
+    });
 
     const button = document.createElement('button');
     button.id = 'yt-chapters-btn';
@@ -92,7 +99,24 @@ class YouTubeChaptersGenerator {
       this.handleGenerateChapters();
     });
 
-    controls.insertBefore(button, controls.firstChild);
+    // Try to find the best position without hiding other buttons
+    // Look for common right-side buttons in order of preference
+    const fullscreenButton = controls.querySelector('.ytp-fullscreen-button');
+    const miniplayerButton = controls.querySelector('.ytp-miniplayer-button');
+    const settingsButton = controls.querySelector('.ytp-settings-button');
+    const theaterButton = controls.querySelector('.ytp-size-button');
+    
+    // Insert before the first button we find, or append at the end
+    let insertTarget = fullscreenButton || miniplayerButton || settingsButton || theaterButton;
+    
+    if (insertTarget) {
+      controls.insertBefore(button, insertTarget);
+      console.log('YouTubeChaptersGenerator: Button injected before', insertTarget.className);
+    } else {
+      // If no specific buttons found, insert at the beginning with proper spacing
+      controls.insertBefore(button, controls.firstChild);
+      console.log('YouTubeChaptersGenerator: Button inserted at beginning');
+    }
     console.log('YouTubeChaptersGenerator: Button injected successfully');
   }
 
