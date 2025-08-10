@@ -34,10 +34,7 @@ class YouTubeChaptersGenerator {
       this.clearPreviousChapters();
       
       this.currentVideoId = videoId;
-      console.log('YouTubeChaptersGenerator: New video detected, injecting button in 2 seconds...');
-      setTimeout(() => {
-        this.injectChapterButton();
-      }, 2000);
+      console.log('YouTubeChaptersGenerator: New video detected');
     }
   }
 
@@ -55,70 +52,6 @@ class YouTubeChaptersGenerator {
     }
   }
 
-  injectChapterButton() {
-    console.log('YouTubeChaptersGenerator: Attempting to inject button...');
-    
-    const existingButton = document.getElementById('yt-chapters-btn');
-    if (existingButton) {
-      console.log('YouTubeChaptersGenerator: Removing existing button');
-      existingButton.remove();
-    }
-
-    const controls = document.querySelector('.ytp-right-controls');
-    console.log('YouTubeChaptersGenerator: Found controls element:', controls);
-    
-    if (!controls) {
-      console.error('YouTubeChaptersGenerator: Could not find .ytp-right-controls element');
-      // Try alternative selectors
-      const altControls1 = document.querySelector('.ytp-chrome-controls .ytp-right-controls');
-      const altControls2 = document.querySelector('[class*="ytp-right-controls"]');
-      console.log('YouTubeChaptersGenerator: Alternative controls1:', altControls1);
-      console.log('YouTubeChaptersGenerator: Alternative controls2:', altControls2);
-      return;
-    }
-    
-    // Debug: log existing buttons for positioning reference
-    const existingButtons = controls.querySelectorAll('button');
-    console.log('YouTubeChaptersGenerator: Existing buttons in controls:', existingButtons);
-    existingButtons.forEach((btn, index) => {
-      console.log(`Button ${index}:`, btn.className, btn.title);
-    });
-
-    const button = document.createElement('button');
-    button.id = 'yt-chapters-btn';
-    button.className = 'ytp-button yt-chapters-generator-btn';
-    button.title = 'Generate Chapters';
-    button.innerHTML = '📖';
-    
-    console.log('YouTubeChaptersGenerator: Created button:', button);
-    
-    button.addEventListener('click', (e) => {
-      console.log('YouTubeChaptersGenerator: Button clicked!');
-      e.preventDefault();
-      e.stopPropagation();
-      this.handleGenerateChapters();
-    });
-
-    // Try to find the best position without hiding other buttons
-    // Look for common right-side buttons in order of preference
-    const fullscreenButton = controls.querySelector('.ytp-fullscreen-button');
-    const miniplayerButton = controls.querySelector('.ytp-miniplayer-button');
-    const settingsButton = controls.querySelector('.ytp-settings-button');
-    const theaterButton = controls.querySelector('.ytp-size-button');
-    
-    // Insert before the first button we find, or append at the end
-    let insertTarget = fullscreenButton || miniplayerButton || settingsButton || theaterButton;
-    
-    if (insertTarget) {
-      controls.insertBefore(button, insertTarget);
-      console.log('YouTubeChaptersGenerator: Button injected before', insertTarget.className);
-    } else {
-      // If no specific buttons found, insert at the beginning with proper spacing
-      controls.insertBefore(button, controls.firstChild);
-      console.log('YouTubeChaptersGenerator: Button inserted at beginning');
-    }
-    console.log('YouTubeChaptersGenerator: Button injected successfully');
-  }
 
   async handleGenerateChapters() {
     console.log('Starting chapter generation...');
@@ -133,7 +66,6 @@ class YouTubeChaptersGenerator {
     }
 
     try {
-      this.showLoading();
       console.log('Fetching available languages...');
       const languages = await this.fetchAvailableLanguages(this.currentVideoId);
       console.log('Languages fetched:', languages);
@@ -168,8 +100,6 @@ class YouTubeChaptersGenerator {
       console.error('Error generating chapters:', error);
       console.error('Error stack:', error.stack);
       this.showMessage(`Error: ${error.message}. Check console for details.`);
-    } finally {
-      this.hideLoading();
     }
   }
 
@@ -379,21 +309,6 @@ class YouTubeChaptersGenerator {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   }
 
-  showLoading() {
-    const button = document.getElementById('yt-chapters-btn');
-    if (button) {
-      button.innerHTML = '⏳';
-      button.disabled = true;
-    }
-  }
-
-  hideLoading() {
-    const button = document.getElementById('yt-chapters-btn');
-    if (button) {
-      button.innerHTML = '📖';
-      button.disabled = false;
-    }
-  }
 
   showMessage(message) {
     const notification = document.createElement('div');
@@ -412,14 +327,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'generateChapters') {
     const generator = window.ytChaptersGenerator;
     if (generator) {
-      if (request.languagesApiUrl) {
-        generator.languagesApiUrl = request.languagesApiUrl;
-      }
-      if (request.chaptersApiUrl) {
-        generator.chaptersApiUrl = request.chaptersApiUrl;
-      }
-      generator.handleGenerateChapters();
-      sendResponse({ success: true });
+      // Call async function and respond when complete
+      generator.handleGenerateChapters()
+        .then(() => {
+          sendResponse({ success: true });
+        })
+        .catch((error) => {
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // Keep the message channel open for async response
     } else {
       sendResponse({ success: false, error: 'Generator not initialized' });
     }

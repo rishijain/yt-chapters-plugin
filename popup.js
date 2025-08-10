@@ -1,26 +1,6 @@
 document.addEventListener('DOMContentLoaded', async function() {
   const statusDiv = document.getElementById('status');
   const generateBtn = document.getElementById('generateBtn');
-  const languagesApiUrlInput = document.getElementById('languagesApiUrl');
-  const chaptersApiUrlInput = document.getElementById('chaptersApiUrl');
-  
-  // Load saved API URLs
-  const result = await chrome.storage.sync.get(['languagesApiUrl', 'chaptersApiUrl']);
-  if (result.languagesApiUrl) {
-    languagesApiUrlInput.value = result.languagesApiUrl;
-  }
-  if (result.chaptersApiUrl) {
-    chaptersApiUrlInput.value = result.chaptersApiUrl;
-  }
-  
-  // Save API URLs on change
-  languagesApiUrlInput.addEventListener('change', function() {
-    chrome.storage.sync.set({ languagesApiUrl: languagesApiUrlInput.value });
-  });
-  
-  chaptersApiUrlInput.addEventListener('change', function() {
-    chrome.storage.sync.set({ chaptersApiUrl: chaptersApiUrlInput.value });
-  });
   
   // Check if current tab is YouTube
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -35,16 +15,17 @@ document.addEventListener('DOMContentLoaded', async function() {
       generateBtn.disabled = true;
       
       try {
-        await chrome.tabs.sendMessage(tab.id, { 
-          action: 'generateChapters',
-          languagesApiUrl: languagesApiUrlInput.value,
-          chaptersApiUrl: chaptersApiUrlInput.value
+        const response = await chrome.tabs.sendMessage(tab.id, { 
+          action: 'generateChapters'
         });
         
-        setTimeout(() => {
+        if (response.success) {
           generateBtn.textContent = 'Generate Chapters';
           generateBtn.disabled = false;
-        }, 2000);
+        } else {
+          generateBtn.textContent = 'Error - Try Again';
+          generateBtn.disabled = false;
+        }
         
       } catch (error) {
         console.error('Error:', error);
