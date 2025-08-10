@@ -1,0 +1,246 @@
+/* YouTube Chapters Generator Styles */
+
+.yt-chapters-generator-btn {
+  background: none !important;
+  border: none !important;
+  color: white !important;
+  font-size: 16px !important;
+  padding: 8px !important;
+  margin: 0 4px !important;
+  cursor: pointer !important;
+  border-radius: 2px !important;
+  opacity: 0.8 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.yt-chapters-generator-btn:hover {
+  opacity: 1 !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.yt-chapters-generator-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Modal Styles */
+.yt-chapters-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  font-family: 'YouTube Sans', 'Roboto', sans-serif;
+}
+
+.yt-chapters-modal-content {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.yt-chapters-modal-content h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  color: #333;
+  text-align: center;
+}
+
+.language-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.language-option {
+  padding: 12px 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.language-option:hover {
+  background-color: #f8f8f8;
+  border-color: #1976d2;
+}
+
+.cancel-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #666;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.cancel-btn:hover {
+  background-color: #555;
+}
+
+/* Chapters List Styles */
+.yt-chapters-list {
+  background: #f8f8f8;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  font-family: 'YouTube Sans', 'Roboto', sans-serif;
+}
+
+.yt-chapters-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.yt-chapters-title {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+  font-weight: 600;
+}
+
+.yt-chapters-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #666;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.yt-chapters-close:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+.yt-chapter-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  cursor: pointer;
+  border-bottom: 1px solid #e0e0e0;
+  transition: background-color 0.2s ease;
+}
+
+.yt-chapter-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.yt-chapter-item:last-child {
+  border-bottom: none;
+}
+
+.chapter-time {
+  color: #1976d2;
+  font-weight: 600;
+  min-width: 80px;
+  font-size: 14px;
+  margin-right: 12px;
+}
+
+.chapter-title {
+  color: #333;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Notification Styles */
+.yt-chapters-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #323232;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 4px;
+  z-index: 10001;
+  font-family: 'YouTube Sans', 'Roboto', sans-serif;
+  font-size: 14px;
+  max-width: 300px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .yt-chapters-list {
+    background: #212121;
+    border-color: #333;
+  }
+  
+  .yt-chapters-title {
+    color: #fff;
+  }
+  
+  .yt-chapters-close {
+    color: #ccc;
+  }
+  
+  .yt-chapters-close:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+  
+  .chapter-title {
+    color: #fff;
+  }
+  
+  .yt-chapter-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .yt-chapters-modal-content {
+    margin: 20px;
+    width: calc(100% - 40px);
+  }
+  
+  .yt-chapters-list {
+    margin: 8px 0;
+    padding: 12px;
+  }
+  
+  .chapter-time {
+    min-width: 60px;
+    font-size: 12px;
+  }
+  
+  .chapter-title {
+    font-size: 13px;
+  }
+}
