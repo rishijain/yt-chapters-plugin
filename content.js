@@ -141,11 +141,16 @@ class YouTubeChaptersGenerator {
   async fetchChapters(videoId, language) {
     console.log('Content: Requesting chapters from background script...');
     
+    // Extract video title from DOM
+    const videoTitle = document.querySelector('h1.ytd-watch-metadata yt-formatted-string')?.textContent || 'Unknown Title';
+    console.log('Content: Extracted video title:', videoTitle);
+    
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage({
         action: 'fetchChapters',
         videoId: videoId,
         language: language,
+        videoTitle: videoTitle,
         apiUrl: this.chaptersApiUrl
       }, (response) => {
         if (chrome.runtime.lastError) {

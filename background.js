@@ -9,7 +9,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   
   if (request.action === 'fetchChapters') {
-    fetchChapters(request.videoId, request.language, request.apiUrl)
+    fetchChapters(request.videoId, request.language, request.apiUrl, request.videoTitle)
       .then(data => sendResponse({ success: true, data: data }))
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true; // Keep the message channel open for async response
@@ -34,9 +34,9 @@ async function fetchLanguages(videoId, apiUrl) {
   return data;
 }
 
-async function fetchChapters(videoId, language, apiUrl) {
+async function fetchChapters(videoId, language, apiUrl, videoTitle) {
   const languageCode = typeof language === 'object' ? language.code : language;
-  const url = `${apiUrl}/videos/${videoId}/chapters/${languageCode}`;
+  const url = `${apiUrl}/videos/${videoId}/chapters/${languageCode}?title=${encodeURIComponent(videoTitle)}`;
   console.log('Background: Fetching chapters from:', url);
   
   const response = await fetch(url);
