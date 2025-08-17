@@ -1,7 +1,6 @@
 class YouTubeChaptersGenerator {
   constructor() {
     console.log('YouTubeChaptersGenerator: Initializing...');
-    this.languagesApiUrl = 'http://localhost:8000';
     this.chaptersApiUrl = 'http://localhost:3000';
     this.currentVideoId = null;
     this.init();
@@ -56,7 +55,6 @@ class YouTubeChaptersGenerator {
   async handleGenerateChapters() {
     console.log('Starting chapter generation...');
     console.log('Current video ID:', this.currentVideoId);
-    console.log('Languages API URL:', this.languagesApiUrl);
     console.log('Chapters API URL:', this.chaptersApiUrl);
 
     if (!this.currentVideoId) {
@@ -66,35 +64,30 @@ class YouTubeChaptersGenerator {
     }
 
     try {
-      console.log('Fetching available languages...');
-      const languages = await this.fetchAvailableLanguages(this.currentVideoId);
-      console.log('Languages fetched:', languages);
+      this.showMessage('Starting audio download...');
       
-      if (languages.length === 0) {
-        this.showMessage('No transcripts available for this video');
-        return;
+      console.log('Starting audio download...');
+      const downloadResponse = await this.startAudioDownload(this.currentVideoId);
+      console.log('Download started:', downloadResponse);
+      
+      const jobId = downloadResponse.job_id;
+      if (!jobId) {
+        throw new Error('No job_id received from download API');
       }
 
-      let selectedLanguage;
-      if (languages.length === 1) {
-        selectedLanguage = languages[0];
-        console.log('Single language selected:', selectedLanguage);
+      this.showMessage('Processing audio... This may take a few minutes.');
+      
+      console.log('Polling job status for job ID:', jobId);
+      const finalResponse = await this.pollForCompletion(jobId);
+      console.log('Job completed:', finalResponse);
+      
+      if (finalResponse.status === 'completed' && finalResponse.data && finalResponse.data.chapters) {
+        console.log('Chapters received:', finalResponse.data.chapters);
+        this.injectChapters(finalResponse.data.chapters);
+        this.showMessage('Chapters generated successfully!');
       } else {
-        console.log('Multiple languages available, showing selector...');
-        selectedLanguage = await this.showLanguageSelector(languages);
-        if (!selectedLanguage) {
-          console.log('No language selected by user');
-          return;
-        }
-        console.log('User selected language:', selectedLanguage);
+        throw new Error('Job completed but no chapters data received');
       }
-
-      console.log('Fetching chapters...');
-      const chapters = await this.fetchChapters(this.currentVideoId, selectedLanguage);
-      console.log('Chapters fetched:', chapters);
-      
-      this.injectChapters(chapters);
-      this.showMessage('Chapters generated successfully!');
       
     } catch (error) {
       console.error('Error generating chapters:', error);
@@ -103,54 +96,13 @@ class YouTubeChaptersGenerator {
     }
   }
 
-  async fetchAvailableLanguages(videoId) {
-    console.log('Content: Requesting languages from background script...');
+  async startAudioDownload(videoId) {
+    console.log('Content: Starting audio download for video:', videoId);
     
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage({
-        action: 'fetchLanguages',
+        action: 'downloadAudio',
         videoId: videoId,
-        apiUrl: this.languagesApiUrl
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('Content: Chrome runtime error:', chrome.runtime.lastError);
-          reject(new Error(chrome.runtime.lastError.message));
-          return;
-        }
-        
-        if (response.success) {
-          console.log('Content: Languages fetched successfully:', response.data);
-          // Parse the actual API response format and filter for is_generated: true
-          const availableLanguages = response.data.available_languages || [];
-          const filteredLanguages = availableLanguages
-            .filter(lang => lang.is_generated === true)
-            .map(lang => ({
-              code: lang.language_code,
-              name: lang.language
-            }));
-          console.log('Content: Filtered languages (is_generated: true):', filteredLanguages);
-          resolve(filteredLanguages);
-        } else {
-          console.error('Content: Languages fetch failed:', response.error);
-          reject(new Error(response.error));
-        }
-      });
-    });
-  }
-
-  async fetchChapters(videoId, language) {
-    console.log('Content: Requesting chapters from background script...');
-    
-    // Extract video title from DOM
-    const videoTitle = document.querySelector('h1.ytd-watch-metadata yt-formatted-string')?.textContent || 'Unknown Title';
-    console.log('Content: Extracted video title:', videoTitle);
-    
-    return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({
-        action: 'fetchChapters',
-        videoId: videoId,
-        language: language,
-        videoTitle: videoTitle,
         apiUrl: this.chaptersApiUrl
       }, (response) => {
         if (chrome.runtime.lastError) {
@@ -160,48 +112,84 @@ class YouTubeChaptersGenerator {
         }
         
         if (response.success) {
-          console.log('Content: Chapters fetched successfully:', response.data);
-          resolve(response.data.chapters || []);
+          console.log('Content: Audio download started successfully:', response.data);
+          resolve(response.data);
         } else {
-          console.error('Content: Chapters fetch failed:', response.error);
+          console.error('Content: Audio download failed:', response.error);
           reject(new Error(response.error));
         }
       });
     });
   }
 
-  showLanguageSelector(languages) {
-    return new Promise((resolve) => {
-      const modal = document.createElement('div');
-      modal.className = 'yt-chapters-modal';
-      modal.innerHTML = `
-        <div class="yt-chapters-modal-content">
-          <h3>Select Language</h3>
-          <div class="language-options">
-            ${languages.map(lang => `
-              <button class="language-option" data-lang="${lang.code}">
-                ${lang.name}
-              </button>
-            `).join('')}
-          </div>
-          <button class="cancel-btn">Cancel</button>
-        </div>
-      `;
+  async pollForCompletion(jobId) {
+    console.log('Content: Starting to poll for job completion:', jobId);
+    
+    const maxAttempts = 60; // 5 minutes with 5-second intervals
+    const pollInterval = 5000; // 5 seconds
+    
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      console.log(`Content: Polling attempt ${attempt}/${maxAttempts} for job ${jobId}`);
+      
+      try {
+        const response = await this.checkJobStatus(jobId);
+        console.log('Content: Job status response:', response);
+        
+        if (response.status === 'completed') {
+          console.log('Content: Job completed successfully');
+          return response;
+        } else if (response.status === 'failed') {
+          throw new Error(`Job failed: ${response.message || 'Unknown error'}`);
+        } else if (response.status === 'processing' || response.status === 'pending') {
+          console.log(`Content: Job still ${response.status}, waiting...`);
+          if (attempt < maxAttempts) {
+            await this.sleep(pollInterval);
+          }
+        } else {
+          console.warn('Content: Unknown job status:', response.status);
+          if (attempt < maxAttempts) {
+            await this.sleep(pollInterval);
+          }
+        }
+      } catch (error) {
+        console.error(`Content: Error on polling attempt ${attempt}:`, error);
+        if (attempt === maxAttempts) {
+          throw error;
+        }
+        await this.sleep(pollInterval);
+      }
+    }
+    
+    throw new Error('Job did not complete within the maximum time limit');
+  }
 
-      modal.addEventListener('click', (e) => {
-        if (e.target.classList.contains('language-option')) {
-          const selectedLang = languages.find(lang => lang.code === e.target.dataset.lang);
-          resolve(selectedLang);
-          modal.remove();
-        } else if (e.target.classList.contains('cancel-btn') || e.target === modal) {
-          resolve(null);
-          modal.remove();
+  async checkJobStatus(jobId) {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({
+        action: 'pollJobStatus',
+        jobId: jobId,
+        apiUrl: this.chaptersApiUrl
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Content: Chrome runtime error:', chrome.runtime.lastError);
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        
+        if (response.success) {
+          resolve(response.data);
+        } else {
+          console.error('Content: Job status check failed:', response.error);
+          reject(new Error(response.error));
         }
       });
-
-      document.body.appendChild(modal);
     });
   }
+
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
 
   injectChapters(chapters) {
     console.log('Injecting chapters:', chapters);
@@ -240,23 +228,25 @@ class YouTubeChaptersGenerator {
 
     chapters.forEach((chapter, index) => {
       console.log(`Chapter ${index}:`, chapter);
-      console.log(`Timestamp: "${chapter.timestamp}", Type: ${typeof chapter.timestamp}`);
-      console.log(`Name: "${chapter.name}"`);
-      console.log(`Start seconds: ${chapter.start_seconds}`);
+      console.log(`Start time: ${chapter.start_time}, End time: ${chapter.end_time}`);
+      console.log(`Headline: "${chapter.headline}"`);
+      console.log(`Summary: "${chapter.summary}"`);
       
       const chapterElement = document.createElement('div');
       chapterElement.className = 'yt-chapter-item';
       
-      // Use the timestamp directly since it's already formatted as "MM:SS"
-      const displayTime = chapter.timestamp || '0:00';
-      // Use start_seconds for seeking since video.currentTime expects seconds
-      const seekTime = chapter.start_seconds || 0;
+      // Convert milliseconds to seconds for seeking
+      const seekTimeMs = chapter.start_time || 0;
+      const seekTime = Math.floor(seekTimeMs / 1000);
       
-      console.log(`Display time: ${displayTime}, Seek time: ${seekTime}`);
+      // Format time for display
+      const displayTime = this.formatTime(seekTime);
+      
+      console.log(`Display time: ${displayTime}, Seek time: ${seekTime} seconds`);
       
       chapterElement.innerHTML = `
         <span class="chapter-time" data-time="${seekTime}">${displayTime}</span>
-        <span class="chapter-title">${chapter.name || 'Untitled Chapter'}</span>
+        <span class="chapter-title">${chapter.headline || 'Untitled Chapter'}</span>
       `;
       
       chapterElement.addEventListener('click', () => {

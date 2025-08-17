@@ -14,6 +14,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true; // Keep the message channel open for async response
   }
+
+  if (request.action === 'downloadAudio') {
+    downloadAudio(request.videoId, request.apiUrl)
+      .then(data => sendResponse({ success: true, data: data }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true; // Keep the message channel open for async response
+  }
+
+  if (request.action === 'pollJobStatus') {
+    pollJobStatus(request.jobId, request.apiUrl)
+      .then(data => sendResponse({ success: true, data: data }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true; // Keep the message channel open for async response
+  }
 });
 
 async function fetchLanguages(videoId, apiUrl) {
@@ -50,5 +64,48 @@ async function fetchChapters(videoId, language, apiUrl, videoTitle) {
   
   const data = await response.json();
   console.log('Background: Chapters API response data:', data);
+  return data;
+}
+
+async function downloadAudio(videoId, apiUrl) {
+  const url = `${apiUrl}/videos/download-audio`;
+  console.log('Background: Starting audio download for video:', videoId);
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ video_id: videoId })
+  });
+  
+  console.log('Background: Download audio API response status:', response.status);
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Background: Download audio API error:', errorText);
+    throw new Error(`Failed to start audio download: ${response.status} ${response.statusText}`);
+  }
+  
+  const data = await response.json();
+  console.log('Background: Download audio API response data:', data);
+  return data;
+}
+
+async function pollJobStatus(jobId, apiUrl) {
+  const url = `${apiUrl}/videos/download-audio/${jobId}/status`;
+  console.log('Background: Polling job status for:', jobId);
+  
+  const response = await fetch(url);
+  console.log('Background: Job status API response status:', response.status);
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Background: Job status API error:', errorText);
+    throw new Error(`Failed to fetch job status: ${response.status} ${response.statusText}`);
+  }
+  
+  const data = await response.json();
+  console.log('Background: Job status API response data:', data);
   return data;
 }
